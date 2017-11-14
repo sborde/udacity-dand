@@ -61,7 +61,6 @@ def audit_housenumber(file_in, pretty = False):
                     else :
                         if not m2.group(1).startswith('1') :
                             nonbp_postcodes.add(m2.group(1))
-                            pprint.pprint(element)
                         else :
                             bp_postcodes.add(m2.group(1))
     
@@ -71,10 +70,37 @@ def audit_housenumber(file_in, pretty = False):
     
     print('Bp: ' + str(len(bp_postcodes)) + ' Non-BP: ' + str(len(nonbp_postcodes)))
         
+def collect_address_element(file_in, element_name) :
+    address_part = re.compile(r'^addr:'+element_name+'$')
+    
+    missing = 0
+    counts = {}
+    
+    for _, element in ET.iterparse(file_in) : 
+        if element.tag == 'node' or element.tag == 'way' :
+            has_field = False
+            for tag in element.iter('tag') :
+                if address_part.match(tag.attrib['k']) : 
+                    has_field = True
+                    this_value = tag.attrib['v']
+                    if this_value in counts :
+                        counts[this_value] += 1
+                    else :
+                        counts[this_value] = 1
+            if not has_field :
+                missing += 1
+               
+    counts['-'] = missing
+    pprint.pprint(counts)
+    
+
+
 
 def audit():
-    #audit_street('ds/budapest_sample.osm', True)
-    audit_housenumber('ds/budapest_sample.osm', True)
+    file_in = 'ds/budapest_sample.osm'
+    #audit_street('ds/budapest.osm', True)
+    #audit_housenumber('ds/budapest_sample.osm', True)
+    #collect_address_element(file_in, 'street')
 
 
 if __name__ == "__main__":
