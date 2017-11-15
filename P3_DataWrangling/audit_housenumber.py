@@ -16,14 +16,19 @@ import pprint
 
 housenumber_tag = re.compile(r'^addr:housenumber$')
 
+slashed_pattern_string = r'(\d+(-\d+)?)\/(([A-Za-z](-[A-Za-z])?|\d+))\.?'
+letter_pattern_string = r'\d+(-\d+)?[A-Za-z]'
+
 housenumber_pattern = {
         'normal': re.compile(r'^\d+(-\d+)?\.?$'),
-        'slashed': re.compile(r'^\d+(-\d+)?\/([A-Za-z]|\d+)\.?$'),
-        'letter': re.compile(r'^\d+(-\d+)?[A-Za-z]$')}
+        'slashed': re.compile('^'+slashed_pattern_string+'$'),
+        'letter': re.compile(r'^' + letter_pattern_string + '$'),
+        'multipart_slash': re.compile('^('+slashed_pattern_string +')-('+slashed_pattern_string+')$'),
+        'multipart_letter': re.compile('^('+letter_pattern_string +')-('+letter_pattern_string+')$')}
 
 def audit_housenumber(file_in):
     
-    valid_patterns = {'normal': 0, 'slashed': 0, 'letter': 0}
+    valid_patterns = {'normal': 0, 'slashed': 0, 'letter': 0, 'multipart_slash': 0, 'multipart_letter': 0}
     nonconform_house_numbers = set()
     
     for _, element in ET.iterparse(file_in):
@@ -36,6 +41,14 @@ def audit_housenumber(file_in):
                 
                 if m : 
                     matching_pattern = False
+                    
+                    v_attr = (
+                            v_attr
+                            .replace(' ', '')
+                            .replace(',', '')
+                            .replace(';', '')
+                            )
+                    
                     for key, pattern in housenumber_pattern.items() :
                         matching_pattern = pattern.match(v_attr)
                         if matching_pattern :
