@@ -11,55 +11,32 @@ and sort them by type.
 """
 
 import xml.etree.cElementTree as ET
-import re
-import pprint
+import convert_housenumber
 
-housenumber_tag = re.compile(r'^addr:housenumber$')
-
-slashed_pattern_string = r'(\d+(-\d+)?)\/(([A-Za-z](-[A-Za-z])?|\d+))\.?'
-letter_pattern_string = r'\d+(-\d+)?[A-Za-z]'
-
-housenumber_pattern = {
-        'normal': re.compile(r'^\d+(-\d+)?\.?$'),
-        'slashed': re.compile('^'+slashed_pattern_string+'$'),
-        'letter': re.compile(r'^' + letter_pattern_string + '$'),
-        'multipart_slash': re.compile('^('+slashed_pattern_string +')-('+slashed_pattern_string+')$'),
-        'multipart_letter': re.compile('^('+letter_pattern_string +')-('+letter_pattern_string+')$')}
 
 def audit_housenumber(file_in):
     
-    valid_patterns = {'normal': 0, 'slashed': 0, 'letter': 0, 'multipart_slash': 0, 'multipart_letter': 0}
-    nonconform_house_numbers = set()
+    clean_housenumber_num = 0
+    dirty_housenumbers = set()
     
     for _, element in ET.iterparse(file_in):
         if element.tag == 'way' or element.tag == 'node' :
             for tag in element.iter('tag') :
-                k_attr = tag.attrib['k']
-                v_attr = tag.attrib['v']
-                
-                m = housenumber_tag.match(k_attr)
-                
-                if m : 
-                    matching_pattern = False
+                if tag.attrib['k'] == 'addr:housenumber' :     
+                    result = convert_housenumber.convert_housenumber(tag.attrib['v'])
                     
-                    v_attr = (
-                            v_attr
-                            .replace(' ', '')
-                            .replace(',', '')
-                            .replace(';', '')
-                            )
+                    if result is None :
+                        dirty_housenumbers.add(tag.attrib['v'])
+                    else :
+                        clean_housenumber_num += 1
+    
+    all_housenumber_entry = clean_housenumber_num + len(dirty_housenumbers)
+    clean_ratio = 100 * clean_housenumber_num / all_housenumber_entry
+    
+    print('The {0:.2f}%% of house numbers can be cleaned ({1:d}/{2:d}).'.format(clean_ratio, clean_housenumber_num, all_housenumber_entry))
+    print('{0} house number cannot be cleaned. List of invalid entries: '.format(len(dirty_housenumbers)))
+    print(', '.join((dirty_housenumbers)))
                     
-                    for key, pattern in housenumber_pattern.items() :
-                        matching_pattern = pattern.match(v_attr)
-                        if matching_pattern :
-                            valid_patterns[key] += 1
-                            break
-                        
-                    if not matching_pattern :
-                        nonconform_house_numbers.add(v_attr)
-                        
-    pprint.pprint(valid_patterns)
-    pprint.pprint(nonconform_house_numbers)
                 
 if __name__ == "__main__" :
     audit_housenumber('ds/budapest_sample.osm')

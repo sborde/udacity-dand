@@ -1,39 +1,48 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov 14 23:58:36 2017
+Function for auditing phone numbers in a file.
 
 @author: borde
 """
 import xml.etree.cElementTree as ET
-import re
-import pprint
 import convert_phonenumber
 
-valid_phonenum = re.compile(r'^(\+36((([23679]0|1)\d{7})|(([23679][1-9]|[1458][0-9])\d{6})))$')
+"""
+This function passes a phone number entry to the cleaning function, and 
+returns the cleaned and dirty numbers as a tuple.
+"""
+def audit_single_entry(phone_number_entry) :
+    number_dict = convert_phonenumber.convert_phone(phone_number_entry)
+    return (number_dict['clean'], number_dict['dirty'])
 
-def audit_phonenumber(file_in) :
-    valid_patterns = {'normal': 0}
-    nonconform_phone_numbers = set()
+
+"""
+This function iterate over a given file and 
+audits each phonenumber tag. After finishing
+with the whole file, statistics will be displayed.
+"""
+def audit_phonenumbers_in_file(file_in) :
+    
+    clean_number = 0
+    dirty_number_set = set()
     
     for _, element in ET.iterparse(file_in):
         if element.tag == 'way' or element.tag == 'node' :
             for tag in element.iter('tag') :
-                k_attr = tag.attrib['k']
-                v_attr = tag.attrib['v']
-                
-                if k_attr == 'phone' : 
+                if tag.attrib['k'] == 'phone' : 
+                    (clean_set, dirty_set) = audit_single_entry(tag.attrib['v'])
                     
-                        if matching_pattern :
-                            valid_patterns['normal'] += 1
-                            
-                            
-                        if not matching_pattern :
-                            nonconform_phone_numbers.add(v_attr)
-                        
-    pprint.pprint(valid_patterns)
-    pprint.pprint(nonconform_phone_numbers)
+                    clean_number += len(clean_set)
+                    dirty_number_set = dirty_number_set | set(dirty_set)
+                    
+    all_phone_entry = clean_number + len(dirty_number_set)
+    clean_ratio = 100 * clean_number / all_phone_entry
+    
+    print('The {0:.2f}%% of phone numbers can be cleaned ({1:d}/{2:d}).'.format(clean_ratio, clean_number, all_phone_entry))
+    print('{0} phone number cannot be cleaned. List of invalid entries: '.format(len(dirty_number_set)))
+    print(', '.join((dirty_number_set)))
                 
 if __name__ == "__main__" :
-    audit_phonenumber('ds/budapest_sample.osm')
+    audit_phonenumbers_in_file('ds/budapest_sample.osm')
     

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Nov 15 14:11:06 2017
+Phone number converter functions.
 
 @author: Sándor
 """
@@ -12,9 +12,16 @@ valid_phonenum = re.compile(r'^(\+36((([23679]0|1)\d{7})|(([23679][1-9]|[1458][0
 def check_phonenum(phone_num) :
     return valid_phonenum.match(phone_num)
 
+"""
+This function tries to convert a given phone number to valid format.
+If the input contains more phone number separated with ; or , splits
+them and process independently. Finally, it collects the numbers in
+a dictionary, separately the cleaned numbers and number which cannot
+be cleaned.
+"""
 def convert_phone(phone_number) :
     
-    phone_number_list = {'clean': [], 'dirty': []}
+    phone_number_dict = {'clean': [], 'dirty': []}
                     
     # If multiple phone numbers were given, split
     if ',' in phone_number :
@@ -52,8 +59,11 @@ def convert_phone(phone_number) :
            ) :
             phone_number = '+36' + phone_number
         
-        
+        # Decide if the number is clean or not
         if check_phonenum(phone_number) :
-            phone_number_list['clean'].add(phone_number)
+            phone_number_dict['clean'].append(phone_number)
         else :
-            phone_number_list['dirty'].add(phone_number)
+            phone_number_dict['dirty'].append(phone_number)
+            
+        return phone_number_dict
+            
