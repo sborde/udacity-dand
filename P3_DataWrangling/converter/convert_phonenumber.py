@@ -7,7 +7,9 @@ Phone number converter functions.
 
 import re
 
+valid_phonenum_wo_plus = re.compile(r'\b(36((([23679]0|1)\d{7})|(([23679][1-9]|[1458][0-9])\d{6})))\b')
 valid_phonenum = re.compile(r'^(\+36((([23679]0|1)\d{7})|(([23679][1-9]|[1458][0-9])\d{6})))$')
+qualifier = re.compile(r'(tel:|telefon:|mobil:)')
 
 def check_phonenum(phone_num) :
     return valid_phonenum.match(phone_num)
@@ -23,11 +25,19 @@ def convert_phone(phone_number) :
     
     phone_number_dict = {'clean': [], 'dirty': []}
                     
+    # Remove qualifier before phone number
+    phone_number = re.sub(qualifier, ' ', phone_number)
+    
     # If multiple phone numbers were given, split
     if ',' in phone_number :
         phone_number_list = phone_number.split(',')
     elif ';' in phone_number :
         phone_number_list = phone_number.split(';')
+    elif re.search(re.compile(r'vagy'), phone_number) :
+        phone_number_list = re.split(re.compile(r'vagy'), phone_number)
+    elif len(valid_phonenum_wo_plus.findall(phone_number.replace('+',''))) > 1 :
+        phone_number_list = ['+'+phn[0] for phn in valid_phonenum_wo_plus.finditer(phone_number.replace('+',''))]
+        print(phone_number_list)
     else :
         phone_number_list = [phone_number]
     
@@ -42,15 +52,23 @@ def convert_phone(phone_number) :
                 .replace('/','')
                 .replace('(','')
                 .replace(')','')
+                .replace('.','')
             )
         
         # Check old international format
         if phone_number.startswith('0036') : 
             phone_number = '+36' + phone_number[4:]
         
+        if phone_number.startswith('+3606') :
+            phone_number = phone_number[:3] + phone_number[5:]
+        
         # Check inland format
         if phone_number.startswith('06') :
             phone_number = '+36' + phone_number[2:]
+            
+        # Missing + sign
+        if phone_number.startswith('36') :
+            phone_number = '+' + phone_number
         
         # Put missing country number
         if (

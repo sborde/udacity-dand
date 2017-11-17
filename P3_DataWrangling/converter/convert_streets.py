@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Nov 17 03:23:19 2017
+Script for auditing street information.
+
+There are some accepted street type defined,
+the script collects those values which don't
+ comply with them.
 
 @author: borde
 """
@@ -24,7 +28,6 @@ def convert_street(street) :
     street_type = street_type_re.match(street)
     
     if not street_type :
-        print(street)
         return None
     
     street_name = street_type.group(1)

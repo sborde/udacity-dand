@@ -9,8 +9,12 @@ the script collects those values which don't
 
 @author: borde
 """
+import sys
+
+sys.path.insert(0, '../')
+
 import xml.etree.cElementTree as ET
-import convert_streets
+import converter.convert_streets as convert_streets
 
 def audit_street(file_in):
     
@@ -39,4 +43,4 @@ def audit_street(file_in):
     print('; '.join((dirty_street_set)))
     
 if __name__ == '__main__' :
-    audit_street('ds/budapest_sample.osm')
+    audit_street('../ds/budapest_sample.osm')

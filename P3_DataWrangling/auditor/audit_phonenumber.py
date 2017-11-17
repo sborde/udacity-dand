@@ -5,8 +5,13 @@ Function for auditing phone numbers in a file.
 
 @author: borde
 """
+
+import sys
+
+sys.path.insert(0, '../')
+
 import xml.etree.cElementTree as ET
-import convert_phonenumber
+import converter.convert_phonenumber as convert_phonenumber
 
 """
 This function passes a phone number entry to the cleaning function, and 
@@ -31,6 +36,7 @@ def audit_phonenumbers_in_file(file_in) :
         if element.tag == 'way' or element.tag == 'node' :
             for tag in element.iter('tag') :
                 if tag.attrib['k'] == 'phone' : 
+                    
                     (clean_set, dirty_set) = audit_single_entry(tag.attrib['v'])
                     
                     clean_number += len(clean_set)
@@ -44,5 +50,5 @@ def audit_phonenumbers_in_file(file_in) :
     print(', '.join((dirty_number_set)))
                 
 if __name__ == "__main__" :
-    audit_phonenumbers_in_file('ds/budapest_sample.osm')
+    audit_phonenumbers_in_file('../ds/budapest.osm')
     

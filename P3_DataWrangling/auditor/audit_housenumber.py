@@ -10,8 +10,12 @@ and sort them by type.
 @author: borde
 """
 
+import sys
+
+sys.path.insert(0, '../')
+
 import xml.etree.cElementTree as ET
-import convert_housenumber
+import converter.convert_housenumber as convert_housenumber
 
 
 def audit_housenumber(file_in):
@@ -39,4 +43,4 @@ def audit_housenumber(file_in):
                     
                 
 if __name__ == "__main__" :
-    audit_housenumber('ds/budapest_sample.osm')
+    audit_housenumber('../ds/budapest.osm')
