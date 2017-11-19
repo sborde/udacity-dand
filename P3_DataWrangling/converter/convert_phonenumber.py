@@ -37,7 +37,7 @@ def convert_phone(phone_number) :
         phone_number_list = re.split(re.compile(r'vagy'), phone_number)
     elif len(valid_phonenum_wo_plus.findall(phone_number.replace('+',''))) > 1 :
         phone_number_list = ['+'+phn[0] for phn in valid_phonenum_wo_plus.finditer(phone_number.replace('+',''))]
-        print(phone_number_list)
+        
     else :
         phone_number_list = [phone_number]
     

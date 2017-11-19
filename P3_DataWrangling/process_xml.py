@@ -93,6 +93,8 @@ def shape_element(element):
             if 'k' in attribs : 
                 thisK = attribs['k']
                 
+                
+                
                 if problemchars.search(thisK) :
                     continue
                 
@@ -125,15 +127,17 @@ def shape_element(element):
                             addr_dict[address_part_name] = clean_value
                             node['address'] = addr_dict
                             
-                    elif m.group(1) == 'phonenumber' :
-                        clean_value = convert_phonenumber.convert_phonenumber(attribs['v'])
-                        
-                        if clean_value['clean'] :
-                           node['phonenumber'] = clean_value['clean']
+
                            
                     else :                   
                         node[m.group(1).replace(':', '_')] = m.group(3)
                         
+                elif thisK == 'phone' :
+                    clean_value = convert_phonenumber.convert_phone(attribs['v'])
+                    
+                    if clean_value['clean'] :
+                       node['phone'] = clean_value['clean']
+
                 else :
                     node[thisK] = attribs['v']
                     
@@ -143,10 +147,18 @@ def shape_element(element):
                 node_refs.append(ndref.attrib['ref'])
             node['node_refs'] = node_refs
         
-        return node
+        if 'name' in node and node['name'] == 'ru' :
+            return node
+        else :
+            return None
     else:
         return None
 
+def debug_process(file_in) :
+    for _, element in ET.iterparse(file_in):
+        el = shape_element(element)
+        if el:            
+            print(json.dumps(el, indent=2))
 
 def process_map(file_in, pretty = False):
     
@@ -165,4 +177,5 @@ def process_map(file_in, pretty = False):
     return data
 
 if __name__ == "__main__":
-    process_map('ds/budapest.osm')
+    #process_map('ds/budapest.osm')
+    debug_process('ds/budapest.osm')

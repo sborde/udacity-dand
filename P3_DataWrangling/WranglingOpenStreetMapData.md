@@ -16,7 +16,13 @@ https://mapzen.com/data/metro-extracts/metro/budapest_hungary/
       </ul>
     </li>
     <li><a href="#chap2">2. Data Overview</a></li>
-    <li><a href="#chap3">3. Additional Ideas</a></li>
+    <li>
+      <a href="#chap3">3. Additional Ideas</a>
+      <ul>
+        <li><a href="#subchap31">3.1 Improvement ideas</a></li>
+        <li><a href="#subchap31">3.2 Possible benefits and problems of improvements</a></li>
+      </ul>
+    </li>
     <li><a href="#chap4">4. Additional data exploration using MongoDB queries</a></li>
 </ul>
 
@@ -100,6 +106,8 @@ Number of different cities
 ```
 <a id="chap3"></a>
 ## 3. Additional Ideas
+<a id="subchap31"></a>
+### 3.1 Improvement ideas
 I think that from the three issues what I mentioned in Chapter 1 standardizing phone numbers would have the best cost-effect ratio. Because, phone numbers can be formalized easily, maybe a real time checker could warn user to follow the convention.
 
 Street names are very diverse by nature, so there we can't make such a big improvement unless we reform naming conventions.
@@ -109,6 +117,14 @@ I found one interesting thing. The most entry belong to Budapest, which is norma
 I remember that 5 years ago, wikipedia announced a "Wikipedia loves monuments" photo contest, where people had to take photos of not so popular, but interesting sculptures, buildings. I think some contest could motivate users to contribute to the database.
 
 Another idea for collecting routes and ways. I like to run and I usually use some runner app to track my activity. It would be great to extract these routes and submit to the database.
+
+<a id="subchap32"></a>
+### 3.2 Possible benefits and problems of improvements
+Standardizing phone numbers would result in the opportunity of faster searching. Sometimes, when I want to find a phone number whom it belongs to, I can't find any result in Google. I had to type in and try each possible combination to get result. Instead, if numbers would be in a unified format, searching, pattern matching, crawling would be easier and faster.
+
+I can't think of any problem related to except one: the human factor. Many people are lazy and if the system would rejects his/her form because of the phone number checker, change their mind and don't submit any entry.
+
+The benefits of my another suggestion are clear: if we organize a contest, hopefully much data will be submitted and the map will be larger and more accurate. But, I think the same people will be interested in this contest who edits the map now. So, the imbalance of the accuracy of the map can remain.
 
 ## 4. Additional data exploration using MongoDB queries
 Cities with TOP10 entries
@@ -184,4 +200,39 @@ Restaurant grouped by cuisine with more than 10 entries
 { "_id" : "burger", "count" : 19 }
 { "_id" : "asian", "count" : 10 }
 { "_id" : "turkish", "count" : 10 }
+```
+Top 10 entry with multiple phone numbers
+```
+> db.budapest.aggregate([
+  {
+    "$match": {
+      "phone":{"$exists":true}
+    }
+  },
+  {
+    "$unwind":"$phone"
+  },
+  {
+    "$group": {
+      _id: "$name",
+      count:{"$sum":1}
+    }
+  },
+  {
+    "$sort":{"count":-1}
+  },
+  {
+    "$limit":10
+  }])
+
+{ "_id" : "SPAR", "count" : 16 }
+{ "_id" : "Nyilvános telefon", "count" : 9 }
+{ "_id" : "OTP Bank", "count" : 9 }
+{ "_id" : "Shell", "count" : 7 }
+{ "_id" : "Copyguru", "count" : 7 }
+{ "_id" : "SPAR Szupermarket", "count" : 6 }
+{ "_id" : "MOL", "count" : 6 }
+{ "_id" : "Burger King", "count" : 6 }
+{ "_id" : "Nyilvános távbeszélő állomás", "count" : 5 }
+{ "_id" : "Friss Pékség", "count" : 5 }
 ```
