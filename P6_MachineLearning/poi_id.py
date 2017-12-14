@@ -9,6 +9,30 @@ from tester import dump_classifier_and_data
 import matplotlib.pyplot as plt
 import numpy as np
 
+def set_to_zero_by_name(name_to_set, name_array, feature_array, feature_index) :
+    set_index = np.where(name_array == name_to_set)[0][0]
+    feature_array[set_index, feature_index] = 0
+    return feature_array
+
+def remove_by_name(name_to_remove, name_array, feature_array) :
+    remove_index = np.where(name_array == name_to_remove)[0][0]
+    name_array = np.delete(name_array, remove_index)
+    feature_array = np.delete(feature_array, remove_index, axis=0)
+    return (name_array, feature_array)
+
+def plot_given_feature(feature_matrix, feature_index, feature_list) : 
+    current_feature = feature_matrix[:, feature_index]
+    current_fname = feature_list[feature_index + 1] #0 index for POI label
+    
+    plt.figure()
+    plt.scatter(current_feature, np.ones(current_feature.shape))
+    plt.title(current_fname)
+
+def find_outlier_name(name_array, feature_array, feature_index, threshold) :
+    current_feature = feature_array[:, feature_index]
+    outlier_flag = (current_feature > threshold)
+    print(name_array[outlier_flag])
+
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
@@ -30,22 +54,29 @@ my_dataset = data_dict
 data = featureFormat(my_dataset, features_list, sort_keys = True)
 labels, features = targetFeatureSplit(data)
 
-### Task 2: Remove outliers
+# Convert everything to numpy datatypes
 feature_matrix = np.asarray(features)
-plt.boxplot(feature_matrix)
-for i in range(0, len(features_list)-1) :
-    current_feature = feature_matrix[:, i]
-    q75, q25 = np.percentile(current_feature, [75 ,25])
-    iqr = q75 - q25
-    minB , maxB = q25-(1.5*iqr), q75+(1.5*iqr)
-    outliers = np.logical_or(current_feature < minB, current_feature > maxB)
-    plt.plot(np.ones((sum(outliers),)) * (i+1), current_feature[outliers], 'o')
+name_matrix = np.asanyarray(sorted(list(data_dict.keys())))
+name_matrix = np.delete(name_matrix, np.where(name_matrix=='LOCKHART EUGENE E')[0][0])
 
-
+(name_matrix, feature_matrix) = remove_by_name('TOTAL', name_matrix, feature_matrix)
 
 ### Task 3: Create new feature(s)
+features_list += ['has_loan_advance']
+new_feature = (feature_matrix[:, 3]>0)
+new_feature = np.ones((feature_matrix.shape[0],)) * new_feature
+feature_matrix = np.column_stack((feature_matrix, new_feature))
 
+### Task 2: Remove outliers
+(name_matrix, feature_matrix) = remove_by_name('LAY KENNETH L', name_matrix, feature_matrix)
+(name_matrix, feature_matrix) = remove_by_name('FREVERT MARK A', name_matrix, feature_matrix)
 
+feature_matrix = set_to_zero_by_name('PICKERING MARK R', name_matrix, feature_matrix, 3)
+feature_matrix = set_to_zero_by_name('BHATNAGAR SANJAY', name_matrix, feature_matrix, 5)
+feature_matrix = set_to_zero_by_name('MARTIN AMANDA K', name_matrix, feature_matrix, 11)
+
+feature_matrix = np.delete(feature_matrix, 3, axis=1)
+del features_list[4]
 
 ### Task 4: Try a varity of classifiers
 ### Please name your classifier clf for easy export below.
