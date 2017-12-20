@@ -37,11 +37,11 @@ After removing these people, I realized that feature called loan_advances became
 
 I saw that there are two, somewhat related features: restricted_stock and total_stock_value. I'm not good at finance, but I think the first should be a part of the second value and it could indicate something worthy information. Therefor I created a new feature called restricted_stock_ratio, which I calculated as the ratio of restricted_stock and total_stock_value. I included this new feature to my feature matrix.
 
-To rank my features I calculated the Mutual Information for each feature and I sorted them into descending order. For this purpose, I used mutual_info_classif function from sklearn. I set the random seed to 42 because of consistency and reproducibility. With this setting, my feature was the 6th best (red bar on the barchart).
+To rank my features I calculated the Mutual Information for each feature and I sorted them into descending order. For this purpose, I used mutual_info_classif function from sklearn. I set the random seed to 2 because of consistency and reproducibility. With this setting, my feature was the 5th best (red bar on the barchart).
 
-<img src="mi_barchart.png" />
+<img src="mi_barchart.png" width="50%"/>
 
-When I performed the incremental feature selection, the use of my new feature increased the precision/recall from 0.047/0.019 to 0.087/0.058. This feature isn't enough to reach the desired result, but it has a large positive impact on it.
+When I performed the incremental feature selection, the use of my new feature increased the precision/recall from 0.094/0.063 to 0.19/0.18. This feature isn't enough to reach the desired result, but it has a large positive impact on it.
 
 ### Feature selection
 

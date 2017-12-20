@@ -192,7 +192,7 @@ else :
     from sklearn.svm import SVC
     clf = SVC(C=10000, kernel='rbf', gamma=0.5)
     
-    micl = mutual_info_classif(feature_matrix, labels, random_state=10)
+    micl = mutual_info_classif(feature_matrix, labels, random_state=2)
     
     plt.figure()
     plt.hold()
