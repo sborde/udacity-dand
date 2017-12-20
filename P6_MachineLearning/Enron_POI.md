@@ -7,9 +7,14 @@ The goal of the project was to train a machine learning model to identify key pe
 I got many features of the Enron employees like salary, bonus, stock options, etc. Besides that, I got some other features like the connection between employees through e-mail. There was one more feature, the so-called POI label. It designates that a person has a significant role in the fraud.
 
 Properties of dataset:
- - number of element: 145 (after outlier removal 142)
- - number of features: 19 (7 feature selected automatically)
- - label distribution: 17/125 (POI/nonPOI)
+ - number of element: 146 (after outlier removal 142)
+ - number of original features: 19
+   - one feature completely removed
+   - one new feature added
+   - 7 feature selected automatically
+ - label distribution (POI/nonPOI)
+   - before removal: 18/128
+   - after removal: 17/125
 
 ### Benefit of ML on this project
 This dataset is suitable for supervised learning algorithms because it serves as a labeled dataset.
@@ -32,7 +37,11 @@ After removing these people, I realized that feature called loan_advances became
 
 I saw that there are two, somewhat related features: restricted_stock and total_stock_value. I'm not good at finance, but I think the first should be a part of the second value and it could indicate something worthy information. Therefor I created a new feature called restricted_stock_ratio, which I calculated as the ratio of restricted_stock and total_stock_value. I included this new feature to my feature matrix.
 
-The score what the Mutual information selector gave to my feature was between 0.04-0.05 (variance because of MI selector), with that result my feature was selected for the final model building
+To rank my features I calculated the Mutual Information for each feature and I sorted them into descending order. For this purpose, I used mutual_info_classif function from sklearn. I set the random seed to 42 because of consistency and reproducibility. With this setting, my feature was the 6th best (red bar on the barchart).
+
+<img src="mi_barchart.png" />
+
+When I performed the incremental feature selection, the use of my new feature increased the precision/recall from 0.047/0.019 to 0.087/0.058. This feature isn't enough to reach the desired result, but it has a large positive impact on it.
 
 ### Feature selection
 

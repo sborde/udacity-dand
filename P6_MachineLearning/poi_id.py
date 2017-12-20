@@ -60,14 +60,21 @@ def find_outliers_name(name_array, feature_array, feature_index, threshold) :
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-features_list = ['poi'] 
-features_list += ['salary', 'deferral_payments', 'total_payments', 'loan_advances', 'bonus', 'restricted_stock_deferred', 'deferred_income', 'total_stock_value', 'expenses', 'exercised_stock_options', 'other', 'long_term_incentive', 'restricted_stock', 'director_fees']
-features_list += ['to_messages', 'from_poi_to_this_person', 'from_messages', 'from_this_person_to_poi', 'shared_receipt_with_poi']
+features_list = ['poi',
+        'salary', 'deferral_payments', 
+        'total_payments', 'loan_advances', 
+        'bonus', 'restricted_stock_deferred', 
+        'deferred_income', 'total_stock_value', 
+        'expenses', 'exercised_stock_options', 
+        'other', 'long_term_incentive', 
+        'restricted_stock', 'director_fees',
+        'to_messages', 'from_poi_to_this_person',
+        'from_messages', 'from_this_person_to_poi',
+        'shared_receipt_with_poi']
 
 ### Load the dictionary containing the dataset
 with open("final_project_dataset.pkl", "rb") as data_file:
     data_dict = pickle.load(data_file)
-
 
 ### Extract features and labels from dataset for local testing
 data = featureFormat(data_dict, features_list, sort_keys = True)
@@ -185,22 +192,37 @@ else :
     from sklearn.svm import SVC
     clf = SVC(C=10000, kernel='rbf', gamma=0.5)
     
-    micl = mutual_info_classif(feature_matrix, labels, random_state=42)
+    micl = mutual_info_classif(feature_matrix, labels, random_state=10)
+    
+    plt.figure()
+    plt.hold()
+    mibars = plt.bar(range(1, len(micl)+1), micl)
+    mibars[-1].set_color('r')
+    
     feature_selection_order = np.argsort(-micl)
     print('Best 7 MI scores of features (in descending order):')
     for ii in range(0, 7) :
         print(features_list[feature_selection_order[ii]+1] + ' ' + str(micl[feature_selection_order[ii]]))
     
-    
-    
+    """
     selector = SelectKBest(mutual_info_classif, k=7)
     selector.fit(feature_matrix, labels)
     best_feature_matrix = selector.fit_transform(feature_matrix, labels)
-
+    """
     
-    my_features = ['poi'] + ['feature_' + str(i+1) for i in range(best_feature_matrix.shape[1])]
-    my_dataset = create_exportable_dataset(name_matrix, best_feature_matrix, my_features[1:])
+    for i in range(1, 8) :
+        best_feature_matrix = feature_matrix[:, feature_selection_order[:i]]
+        
+        my_features = ['poi'] + ['feature_' + str(i+1) for i in range(best_feature_matrix.shape[1])]
+        my_dataset = create_exportable_dataset(name_matrix, best_feature_matrix, my_features[1:])
+        
+        dump_classifier_and_data(clf, my_dataset, my_features)
+        import tester
+        result = tester.main()
+        
+        if result != None :
+            print('Using the best {} features: acc={}, prec={}, rec={}, F1={}'.format(i, result[0], result[1], result[2], result[3]))    
+        else :
+            print('-')
+            
     
-    dump_classifier_and_data(clf, my_dataset, my_features)
-    import tester
-    tester.main()
