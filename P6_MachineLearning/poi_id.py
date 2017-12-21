@@ -10,52 +10,12 @@ sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
+from poi_id_helper import create_exportable_dataset, my_scoring_function
+from poi_id_helper import remove_by_names, set_feature_to_zero
 import matplotlib.pyplot as plt
 import numpy as np
 
-def create_exportable_dataset(name_list, feature_matrix, feature_names) :
-    my_dataset = {}
-    
-    for i in range(len(name_list)) :
-        name = name_matrix[i]
-        current_dict = {}
-        for j in range(len(feature_names)) :
-            current_dict[feature_names[j]] = feature_matrix[i, j]
-            
-        current_dict['poi'] = labels[i]
-        my_dataset[name] = current_dict
-        
-    return my_dataset
 
-def set_feature_to_zero(names_to_set, name_array, feature_array) :
-    for (name, f_index) in names_to_set :
-        set_index = np.where(name_array == name)[0][0]
-        feature_array[set_index, f_index] = 0
-        
-    return feature_array
-
-def remove_by_names(names_to_remove, name_array, feature_array, labels) :
-    
-    for ii in range(len(names_to_remove)) :
-        remove_index = np.where(name_array == names_to_remove[ii])[0][0]
-        name_array = np.delete(name_array, remove_index)
-        feature_array = np.delete(feature_array, remove_index, axis=0)
-        labels = np.delete(labels, remove_index)
-        
-    return (name_array, feature_array, labels)
-
-def plot_given_feature(feature_matrix, feature_index, feature_list) : 
-    current_feature = feature_matrix[:, feature_index]
-    current_fname = feature_list[feature_index + 1] #0 index for POI label
-    
-    plt.figure()
-    plt.scatter(current_feature, np.ones(current_feature.shape))
-    plt.title(current_fname)
-
-def find_outliers_name(name_array, feature_array, feature_index, threshold) :
-    current_feature = feature_array[:, feature_index]
-    outlier_flag = (current_feature > threshold)
-    print(name_array[outlier_flag])
 
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
@@ -125,19 +85,21 @@ if tuning :
     #algorithm = 'dct'
     #algorithm = 'gnb'
     
+    result_list = []
+    
     ### Automatic feature selection using mutual information
     for no_feat in range(1, feature_matrix.shape[1]) :
     
-        selector = SelectKBest(mutual_info_classif, k=no_feat)
+        selector = SelectKBest(my_scoring_function, k=no_feat)
         selector.fit(feature_matrix, labels)
         best_feature_matrix = selector.fit_transform(feature_matrix, labels)
+        
         
         ### Task 4: Try a varity of classifiers
         ### Please name your classifier clf for easy export below.
         ### Note that if you want to do PCA or other multi-stage operations,
         ### you'll need to use Pipelines. For more info:
         ### http://scikit-learn.org/stable/modules/pipeline.html
-        
         if algorithm == 'svm' :
             from sklearn.svm import SVC
             clf = SVC()   
@@ -180,14 +142,33 @@ if tuning :
         ### that the version of poi_id.py that you submit can be run on its own and
         ### generates the necessary .pkl files for validating your results.
         my_features = ['poi'] + ['feature_' + str(i+1) for i in range(best_feature_matrix.shape[1])]
-        my_dataset = create_exportable_dataset(name_matrix, best_feature_matrix, my_features[1:])
+        my_dataset = create_exportable_dataset(name_matrix, best_feature_matrix, my_features[1:], labels)
         
         ### Validate with real tester
         dump_classifier_and_data(clf, my_dataset, my_features)
         import tester
-        tester.main()
+        result = tester.main()
+        if result :
+            result_list.append(list(result))
+        else :
+            result_list.append([0, 0, 0, 0])
+        
         
         print('Number of features: {}'.format(no_feat))
+        
+    result_arr = np.asarray(result_list)
+    
+    plt.figure()
+    plt.hold(True)
+    x_value = range(1, result_arr.shape[0]+1)
+    plt.plot(x_value, result_arr[:, 0])
+    plt.plot(x_value, result_arr[:, 1])
+    plt.plot(x_value, result_arr[:, 2])
+    plt.plot(x_value, result_arr[:, 3])
+    plt.legend(['accuracy', 'precision', 'recall', 'f1'], loc=7)
+    plt.xticks(x_value)
+    plt.hold(False)
+    
 else :
     from sklearn.svm import SVC
     clf = SVC(C=10000, kernel='rbf', gamma=0.5)
@@ -202,27 +183,18 @@ else :
     feature_selection_order = np.argsort(-micl)
     print('Best 7 MI scores of features (in descending order):')
     for ii in range(0, 7) :
-        print(features_list[feature_selection_order[ii]+1] + ' ' + str(micl[feature_selection_order[ii]]))
+        print('{0}: {1:.3f}'.format(features_list[feature_selection_order[ii]+1], micl[feature_selection_order[ii]]))
     
-    """
-    selector = SelectKBest(mutual_info_classif, k=7)
+    
+    selector = SelectKBest(my_scoring_function, k=7)
     selector.fit(feature_matrix, labels)
     best_feature_matrix = selector.fit_transform(feature_matrix, labels)
-    """
     
-    for i in range(1, 8) :
-        best_feature_matrix = feature_matrix[:, feature_selection_order[:i]]
+    my_features = ['poi'] + ['feature_' + str(i+1) for i in range(best_feature_matrix.shape[1])]
+    my_dataset = create_exportable_dataset(name_matrix, best_feature_matrix, my_features[1:], labels)
         
-        my_features = ['poi'] + ['feature_' + str(i+1) for i in range(best_feature_matrix.shape[1])]
-        my_dataset = create_exportable_dataset(name_matrix, best_feature_matrix, my_features[1:])
-        
-        dump_classifier_and_data(clf, my_dataset, my_features)
-        import tester
-        result = tester.main()
-        
-        if result != None :
-            print('Using the best {} features: acc={}, prec={}, rec={}, F1={}'.format(i, result[0], result[1], result[2], result[3]))    
-        else :
-            print('-')
+    dump_classifier_and_data(clf, my_dataset, my_features)
+    import tester
+    result = tester.main()
             
     
