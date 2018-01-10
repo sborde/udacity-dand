@@ -1,0 +1,214 @@
+Explore financial contribution of presidential election of California by Sándor Bordé
+========================================================
+
+```{r global_options, echo=FALSE, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+finData <- read.csv('support_CA_col.csv')
+```
+
+This dataset contains individual donations to the candidates of the Presidential 
+Election in 2016. For each data entry, we have the amount of contribution, 
+sender, the name of the candidate, date, note, etc.
+I have 1,304,346 entry in the dataset.
+
+# Univariate Plots Section
+
+```{r echo=FALSE, Dimension}
+dim(finData)
+```
+```{r echo=FALSE, Variables_list}
+str(finData)
+```
+```{r echo=FALSE, Summary}
+summary(finData)
+```
+
+The dataset contains 1,304,346 contribution's data; each entry has 18 variables.
+
+There are meaningless or not so informative variables: 
+
+  * *cand_id*: this is redundant if we want to use the name of the candidate too. 
+  * *contbr_st*: my dataset contains only data from CA, so it is meaningless.
+  * *memo_text*, *receipt_desc*: description of the receipt contains textual data which 
+I won't analyze. Besides that, in most cases this field is empty.
+  * *memo_cd*: this field only indicates that they provided any memo text.
+  * *form_tp*, *file_num*, *tran_id*: these variables serve only administrative purposes, 
+ but don't provide any meaningful information.
+ 
+I decided to remove the above variables, so I have ten variables left.
+
+```{r echo=FALSE}
+finData = subset(finData, select = -c(cand_id, contbr_st, memo_text, 
+                                       receipt_desc, memo_cd, form_tp,
+                                       file_num, tran_id))
+```
+
+After removing the mentioned features, I got the following ten features.
+
+```{r echo=FALSE, Name_list}
+names(finData)
+```
+
+My primary interest is the distribution of the contribution amount along 
+different properties. After plotting the amount distribution histogram, I found
+that there can be outliers which fall far from the most of the values. To see 
+the distribution better, I adjusted the axis limits.
+
+```{r}
+sum(finData$contb_receipt_amt < 0) / nrow(finData)
+```
+
+In my dataset occurred some negative value (which means refund for the 
+contributor) what I ignored because I wanted to look at the contribution. 
+Negative values made up only the 1.2% of the whole dataset; so I decided to 
+remove them from the further analysis.
+
+```{r, Remove_negative}
+finData <- finData[(finData$contb_receipt_amt > 0), ]
+```
+
+```{r, warning = FALSE}
+ggplot(finData, aes((contb_receipt_amt))) +
+  geom_histogram(binwidth = 1) +
+  xlim(0, 250)
+```
+
+As we can see from the initial histogram, supporters tended to give specific 
+amount of contribution like \$5, \$10, \$50. But besides this fact, such a small binsize isn't very informative; so I adjusted the histogram further.
+
+```{r, warning = FALSE}
+ggplot(finData, aes((contb_receipt_amt))) +
+  geom_histogram(binwidth = 0.5) + 
+  scale_x_log10()
+```
+
+When I transformed the x-axis to log scale, I found that this dataset follows a long-tailed, log-normal distribution.
+
+```{r, warning = FALSE}
+ggplot(finData, aes(cand_nm)) +
+  geom_bar()
+```
+
+# Univariate Analysis
+
+> **Tip**: Now that you've completed your univariate explorations, it's time to
+reflect on and summarize what you've found. Use the questions below to help you
+gather your observations and add your own if you have other thoughts!
+
+### What is the structure of your dataset?
+
+### What is/are the main feature(s) of interest in your dataset?
+
+### What other features in the dataset do you think will help support your \
+investigation into your feature(s) of interest?
+
+### Did you create any new variables from existing variables in the dataset?
+
+### Of the features you investigated, were there any unusual distributions? \
+Did you perform any operations on the data to tidy, adjust, or change the form \
+of the data? If so, why did you do this?
+
+
+# Bivariate Plots Section
+
+> **Tip**: Based on what you saw in the univariate plots, what relationships
+between variables might be interesting to look at in this section? Don't limit
+yourself to relationships between a main output feature and one of the
+supporting variables. Try to look at relationships between supporting variables
+as well.
+
+```{r echo=FALSE, Bivariate_Plots}
+
+```
+
+# Bivariate Analysis
+
+> **Tip**: As before, summarize what you found in your bivariate explorations
+here. Use the questions below to guide your discussion.
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. How did the feature(s) of interest vary with other features in \
+the dataset?
+
+### Did you observe any interesting relationships between the other features \
+(not the main feature(s) of interest)?
+
+### What was the strongest relationship you found?
+
+
+# Multivariate Plots Section
+
+> **Tip**: Now it's time to put everything together. Based on what you found in
+the bivariate plots section, create a few multivariate plots to investigate
+more complex interactions between variables. Make sure that the plots that you
+create here are justified by the plots you explored in the previous section. If
+you plan on creating any mathematical models, this is the section where you
+will do that.
+
+```{r echo=FALSE, Multivariate_Plots}
+
+```
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. Were there features that strengthened each other in terms of \
+looking at your feature(s) of interest?
+
+### Were there any interesting or surprising interactions between features?
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the \
+strengths and limitations of your model.
+
+------
+
+# Final Plots and Summary
+
+> **Tip**: You've done a lot of exploration and have built up an understanding
+of the structure of and relationships between the variables in your dataset.
+Here, you will select three plots from all of your previous exploration to
+present here as a summary of some of your most interesting findings. Make sure
+that you have refined your selected plots for good titling, axis labels (with
+units), and good aesthetic choices (e.g. color, transparency). After each plot,
+make sure you justify why you chose each plot by describing what it shows.
+
+### Plot One
+```{r echo=FALSE, Plot_One}
+
+```
+
+### Description One
+
+
+### Plot Two
+```{r echo=FALSE, Plot_Two}
+
+```
+
+### Description Two
+
+
+### Plot Three
+```{r echo=FALSE, Plot_Three}
+
+```
+
+### Description Three
+
+------
+
+# Reflection
+
+> **Tip**: Here's the final step! Reflect on the exploration you performed and
+the insights you found. What were some of the struggles that you went through?
+What went well? What was surprising? Make sure you include an insight into
+future work that could be done with the dataset.
+
+> **Tip**: Don't forget to remove this, and the other **Tip** sections before
+saving your final work and knitting the final report!
