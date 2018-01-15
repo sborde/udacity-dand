@@ -17,7 +17,7 @@ Election in 2016. For each data entry, we have the amount of contribution,
 sender, the name of the candidate, date, note, etc.
 I have 1,304,346 entry in the dataset.
 
-# Univariate Plots Section
+# Dataset description
 
 ```{r echo=FALSE, Dimension}
 dim(finData)
@@ -30,6 +30,8 @@ summary(finData)
 ```
 
 The dataset contains 1,304,346 contribution's data; each entry has 18 variables.
+
+# Data transformation
 
 There are meaningless or not so informative variables: 
 
@@ -60,7 +62,7 @@ different properties. After plotting the amount distribution histogram, I found
 that there can be outliers which fall far from the most of the values. To see 
 the distribution better, I adjusted the axis limits.
 
-```{r}
+```{r echo=FALSE}
 sum(finData$contb_receipt_amt < 0) / nrow(finData)
 ```
 
@@ -69,31 +71,168 @@ contributor) what I ignored because I wanted to look at the contribution.
 Negative values made up only the 1.2% of the whole dataset; so I decided to 
 remove them from the further analysis.
 
-```{r, Remove_negative}
+```{r echo=FALSE, Remove_negative}
 finData <- finData[(finData$contb_receipt_amt > 0), ]
 ```
 
-```{r, warning = FALSE}
+# Univariate plots section
+
+```{r echo=FALSE, warning = FALSE}
 ggplot(finData, aes((contb_receipt_amt))) +
   geom_histogram(binwidth = 1) +
   xlim(0, 250)
 ```
 
 As we can see from the initial histogram, supporters tended to give specific 
-amount of contribution like \$5, \$10, \$50. But besides this fact, such a small binsize isn't very informative; so I adjusted the histogram further.
+amount of contribution like \$5, \$10, \$50. But besides this fact, such a small
+binsize isn't very informative; so I adjusted the histogram further.
 
-```{r, warning = FALSE}
+```{r echo=FALSE, warning = FALSE}
 ggplot(finData, aes((contb_receipt_amt))) +
   geom_histogram(binwidth = 0.5) + 
   scale_x_log10()
 ```
 
-When I transformed the x-axis to log scale, I found that this dataset follows a long-tailed, log-normal distribution.
+When I transformed the x-axis to log scale, I found that this dataset follows a
+long-tailed, log-normal distribution.
 
-```{r, warning = FALSE}
+```{r echo=FALSE, warning = FALSE}
 ggplot(finData, aes(cand_nm)) +
-  geom_bar()
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
+
+From the plot above we can see, that only a small fraction of the candidates 
+received most of the contributions. 
+
+```{r echo=FALSE, warning=FALSE}
+# Sum number of contribution by candidate
+ratio_by_cand <- finData %>%
+  group_by(cand_nm) %>%
+  summarise(n = n(), 
+            ratio = n() / nrow(finData)) %>%
+  arrange(desc(n))
+# Calculate cumulative ratio of contribution
+ratio_by_cand$cumulative_ratio <- with(ratio_by_cand, cumsum(ratio))
+head(ratio_by_cand[, c('cand_nm', 'cumulative_ratio')])
+```
+
+We have 25 candidates in the dataset, but four of them received the 95% of 
+the contributions.
+
+```{r echo=FALSE, warning=FALSE}
+# Count contribution by name of the sender
+ratio_by_contbr <- finData %>%
+  group_by(contbr_nm) %>%
+  summarise(n = n()) %>%
+  arrange()
+# Count contribution by commitee ID
+ratio_by_commt <- finData %>%
+  group_by(cmte_id) %>%
+  summarise(n = n()) %>%
+  arrange()
+# Count contribution by city
+ratio_by_city <- finData %>%
+  group_by(contbr_city) %>%
+  summarise(n = n()) %>%
+  arrange()
+```
+
+```{r echo=FALSE, warning=FALSE}
+p1 <- ggplot(ratio_by_contbr, aes(n)) +
+  geom_histogram(binwidth = 10) +
+  scale_y_log10()
+
+p2 <- ggplot(ratio_by_commt, aes(n)) +
+  geom_histogram(binwidth = 0.6) +
+  scale_x_log10()
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+I have summed the number contributions per person. I can see that a very high 
+portion supported the selected candidate only once. But, there is a couple of 
+people who donated to his or her favorite candidate more than 200 times.
+
+After counting the number of contributions by committees, I found that it 
+follows a log-normal distribution. That is, most of the committees sent a few 
+support, and some of them sent many times.
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(ratio_by_city, aes(n)) + 
+  geom_histogram() + 
+  scale_x_log10()
+```
+
+```{r echo=FALSE, warning=FALSE}
+summary(ratio_by_city$n)
+```
+
+We can see that this feature doesn't follow log-normal, but long-tail distribution.
+
+```{r echo=FALSE, warning = FALSE}
+ratio_by_occupation <- finData %>%
+  group_by(contbr_occupation) %>%
+  summarise(n = n(), ratio = n/nrow(finData)) %>%
+  filter(ratio >= 0.01) %>%
+  arrange(desc(n))
+head(ratio_by_occupation, n = 15)
+```
+
+In my dataset, there are 28622 different occupation type. But after counting 
+the number of contribution, I found that only 11 occupation has at least 
+1% ratio, so it follows a long-tail distribution too.
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(ratio_by_occupation, aes(contbr_occupation, ratio)) + 
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+One interesting fact that about 20% of the contributions came from retirees, 
+the second largest group (almost 10%) was the unemployed people. Besides that, 
+most of the top 11 occupation was some white-collar job: attorney, consultant, 
+engineer etc.
+
+```{r echo=FALSE, warning=FALSE}
+ratio_by_election <- finData %>%
+  filter(election_tp != '') %>%
+  group_by(election_tp) %>%
+  summarise(n = n(), raio = n() / nrow(finData)) %>%
+  arrange(desc(n))
+              
+ggplot(ratio_by_election, aes(x = '', y = n, fill = election_tp)) +
+  geom_bar(width = 1, stat = "identity") + 
+  coord_polar(start = 0, "y")
+```
+
+Almost every contribution have been made for the 2016 primary and general election.
+Because the other two (primary 2020 and other 2016) was so small I decided not 
+to use them in the further analysis.
+
+```{r echo=FALSE, warning=FALSE}
+# Count contribution by date
+ratio_by_date <- finData %>%
+  group_by(date = as.Date(contb_receipt_dt, "%d-%b-%Y")) %>%
+  summarise(n = n(), raio = n() / nrow(finData)) %>%
+  arrange()
+
+ggplot(ratio_by_date, aes(x = date, y = n)) + 
+  geom_line()
+```
+
+If we look at the number of contributions made per day, we can see that the 
+first contributions came in 2014, but the vast majority have been made in 2016. 
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(ratio_by_date, aes(x = date, y = n)) + 
+  geom_line() + 
+  scale_x_date(limits = as.Date(c("01-01-16", "31-12-16"), "%d-%m-%Y"))
+```
+
+If we zoom into the year of the election (2016), we see a clear bimodality in 
+the number of contributions. The first peak is in the spring, the second, the 
+higher peak can we see at the end of October.
 
 # Univariate Analysis
 
@@ -103,17 +242,53 @@ gather your observations and add your own if you have other thoughts!
 
 ### What is the structure of your dataset?
 
+After the initial preprocessing (what I mentioned in the previous section) I 
+have 1,287,980 observation and 10 variables. These variables are: cmte_id (ID 
+of the suporter committee), cand_nm (candidate's name), contbr_nm (contributor's 
+name), contbr_city (contributor's city), contbr_zip (contributor's zip code), 
+contbr_employer (employer of the contributor), contbr_occupation (occupation of 
+the contributor), contb_receipt_amt (amount sent as contribution), contb_receipt_dt 
+(date of contribution sent) and election_tp (election for which the contribution
+was made). Almost each of the variables are Factor variable and none of them is
+ordered factor. I have a date variable and a real valued variable, the amount 
+of the contribution. 
+
+Other observation: 
+
+ * There are 25 candidates in the dataset, but four of them received the 95% of 
+ the contribution.
+ * 29% of the contributions came from retired or unemployed people.
+ * Most of the contributors made a small number of donation, but there were 
+ a few people who contributed more than 200 times.
+ * Most of the contributions were a small amount, and the amount per donation 
+ followed a log-normal distribution.
+
 ### What is/are the main feature(s) of interest in your dataset?
+The main feature of interest for me is the amount of support per candidate. I 
+would like to gain some insight and maybe predict, what kind of people supported
+which candidate. I will consider only the top 4 candidate because of their 
+dominance in the dataset.
+
+The other thing what I want to examine is the contribution for the two finalist 
+in function of the date. Is there any trend in support?
 
 ### What other features in the dataset do you think will help support your \
 investigation into your feature(s) of interest?
+I will use the occupation, city, date and committee to make research my idea.
 
 ### Did you create any new variables from existing variables in the dataset?
+I didn't create any new variable in the dataset, but I created new grouped 
+dataframes to count the number of contributions per different categories.
 
 ### Of the features you investigated, were there any unusual distributions? \
 Did you perform any operations on the data to tidy, adjust, or change the form \
 of the data? If so, why did you do this?
+I log-transformed the distribution of the amount of support and the number of 
+donations made by committees.
 
+I removed the negative donation amounts because I wanted to examine only 
+positive support without refunds. There were some values with 0 amount, I dropped
+those observations because it was meaningless too.
 
 # Bivariate Plots Section
 
