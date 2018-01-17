@@ -19,9 +19,6 @@ I have 1,304,346 entry in the dataset.
 
 # Dataset description
 
-```{r echo=FALSE, Dimension}
-dim(finData)
-```
 ```{r echo=FALSE, Variables_list}
 str(finData)
 ```
@@ -57,11 +54,6 @@ After removing the mentioned features, I got the following ten features.
 names(finData)
 ```
 
-My primary interest is the distribution of the contribution amount along 
-different properties. After plotting the amount distribution histogram, I found
-that there can be outliers which fall far from the most of the values. To see 
-the distribution better, I adjusted the axis limits.
-
 ```{r echo=FALSE}
 sum(finData$contb_receipt_amt < 0) / nrow(finData)
 ```
@@ -76,6 +68,11 @@ finData <- finData[(finData$contb_receipt_amt > 0), ]
 ```
 
 # Univariate plots section
+
+My primary interest is the distribution of the contribution amount along 
+different factors. After plotting the amount distribution histogram, I found
+that there can be outliers which fall far from the most of the values. To see 
+the distribution better, I adjusted the axis limits.
 
 ```{r echo=FALSE, warning = FALSE}
 ggplot(finData, aes((contb_receipt_amt))) +
@@ -124,17 +121,17 @@ the contributions.
 # Count contribution by name of the sender
 ratio_by_contbr <- finData %>%
   group_by(contbr_nm) %>%
-  summarise(n = n()) %>%
+  summarise(avg = mean(contb_receipt_amt), sum = sum(contb_receipt_amt), n = n()) %>%
   arrange()
 # Count contribution by commitee ID
 ratio_by_commt <- finData %>%
   group_by(cmte_id) %>%
-  summarise(n = n()) %>%
+  summarise(avg = mean(contb_receipt_amt), sum = sum(contb_receipt_amt), n = n()) %>%
   arrange()
 # Count contribution by city
 ratio_by_city <- finData %>%
   group_by(contbr_city) %>%
-  summarise(n = n()) %>%
+  summarise(avg = mean(contb_receipt_amt), sum = sum(contb_receipt_amt), n = n()) %>%
   arrange()
 ```
 
@@ -158,7 +155,7 @@ After counting the number of contributions by committees, I found that it
 follows a log-normal distribution. That is, most of the committees sent a few 
 support, and some of them sent many times.
 
-```{r echo=FALSE, warning=FALSE}
+```{r echo=FALSE, warning=FALSE, message=FALSE}
 ggplot(ratio_by_city, aes(n)) + 
   geom_histogram() + 
   scale_x_log10()
@@ -171,12 +168,13 @@ summary(ratio_by_city$n)
 We can see that this feature doesn't follow log-normal, but long-tail distribution.
 
 ```{r echo=FALSE, warning = FALSE}
+# Find occupation with 1% or more participation
 ratio_by_occupation <- finData %>%
   group_by(contbr_occupation) %>%
-  summarise(n = n(), ratio = n/nrow(finData)) %>%
+  summarise(n = n(), sum = sum(contb_receipt_amt), avg = mean(contb_receipt_amt), ratio = n/nrow(finData)) %>%
   filter(ratio >= 0.01) %>%
   arrange(desc(n))
-head(ratio_by_occupation, n = 15)
+head(ratio_by_occupation[, c("contbr_occupation", "n", "ratio")], n = 15)
 ```
 
 In my dataset, there are 28622 different occupation type. But after counting 
@@ -236,10 +234,6 @@ higher peak can we see at the end of October.
 
 # Univariate Analysis
 
-> **Tip**: Now that you've completed your univariate explorations, it's time to
-reflect on and summarize what you've found. Use the questions below to help you
-gather your observations and add your own if you have other thoughts!
-
 ### What is the structure of your dataset?
 
 After the initial preprocessing (what I mentioned in the previous section) I 
@@ -292,15 +286,93 @@ those observations because it was meaningless too.
 
 # Bivariate Plots Section
 
-> **Tip**: Based on what you saw in the univariate plots, what relationships
-between variables might be interesting to look at in this section? Don't limit
-yourself to relationships between a main output feature and one of the
-supporting variables. Try to look at relationships between supporting variables
-as well.
+I want to answer a question using my analysis: "Who supported whom the most?" 
+Therefore, I start with a bar chart displaying the sum of each contribution for 
+each candidate.
+
+One of my thought was that is it possible, that one candidate receives a large 
+number of contribution but the sum of all support is smaller than other candidates'?
+
 
 ```{r echo=FALSE, Bivariate_Plots}
+# Create sum plot
+ggplot(finData, aes(cand_nm, contb_receipt_amt)) +
+  geom_bar(stat = "sum") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 ```
+
+```{r warning=FALSE, echo=FALSE}
+mean_by_candidate <- finData %>%
+  group_by(cand_nm) %>%
+  summarise(num_support = n(), sum_support = sum(contb_receipt_amt)) %>%
+  arrange(desc(sum_support))
+
+head(mean_by_candidate)
+```
+
+Looking at the bar chart and the summary table, I can't say about the top four 
+most supported candidate; their order is the same.
+
+```{r warning=FALSE, echo=FALSE}
+ggplot(mean_by_candidate, aes(num_support, sum_support)) +
+  geom_point()
+```
+
+Looking at the scatterplot, we can recognize two definite and one more potential 
+outlier. I searched for the names, and I found that these points are outliers, 
+but with the good meaning. They were the most supported candidates. This finding 
+is in harmony with my histograms.
+
+Another finding is that the points almost lie on a straight line which would 
+mean that the number of contribution and the overall sum correlates to each other.
+
+```{r, warning=FALSE, echo=FALSE}
+cor(mean_by_candidate$num_support, mean_by_candidate$sum_support)
+```
+
+Another finding is that the points almost lie on a straight line which would 
+mean that the number of contribution and the overall sum correlates to each 
+other. The value of the correlation coefficient strengthens my theory.
+
+```{r echo=FALSE, warning=FALSE}
+# Create sum plot by city
+ggplot(finData, aes(contbr_city, contb_receipt_amt)) +
+  geom_bar(stat = "sum") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  scale_x_discrete(breaks = seq(0, 2517, 10))
+```
+
+From the plot above I can see, that there are four cities which have much more 
+support than the others. After displaying the exact values we can see these top
+contributor cities.
+
+```{r, warning=FALSE, echo=FALSE}
+head(ratio_by_city[order(-ratio_by_city$sum), c("contbr_city", "sum")], n = 10)
+```
+
+The numbers prove what we saw in the bar chart. Los Angeles and San Francisco 
+raised an order of magnitude larger amount of money than the others.
+
+I was curious about the money collected by people from a specific occupation. I 
+have a hypothesis, that a lot of retiree and unemployed people contributed to 
+the campaign, I would think that they could not donate so much money personally. 
+That's why I compared the average amount of a single donation by occupation.
+
+```{r warning=FALSE, echo=FALSE}
+p1 <- ggplot(ratio_by_occupation, aes(contbr_occupation, avg)) + 
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+p2 <- ggplot(ratio_by_occupation, aes(contbr_occupation, sum)) + 
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+We can see that - as I expected - retirees raised the largest amount. But the 
+average individual contribution of retirees was quite low - only the teachers 
+and unemployed people have lower average support.
 
 # Bivariate Analysis
 
