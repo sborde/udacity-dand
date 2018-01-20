@@ -5,11 +5,13 @@ Explore financial contribution of presidential election of California by Sándor
 library(ggplot2)
 library(dplyr)
 library(gridExtra)
+library(tidyr)
 ```
 
 ```{r echo=FALSE, Load_the_Data}
 # Load the Data
 finData <- read.csv('support_CA_col.csv')
+finData$contb_receipt_dt <- as.Date(finData$contb_receipt_dt, "%d-%b-%Y")
 ```
 
 This dataset contains individual donations to the candidates of the Presidential 
@@ -211,7 +213,7 @@ to use them in the further analysis.
 ```{r echo=FALSE, warning=FALSE}
 # Count contribution by date
 ratio_by_date <- finData %>%
-  group_by(date = as.Date(contb_receipt_dt, "%d-%b-%Y")) %>%
+  group_by(date = contb_receipt_dt) %>%
   summarise(n = n(), raio = n() / nrow(finData)) %>%
   arrange()
 
@@ -348,7 +350,8 @@ support than the others. After displaying the exact values we can see these top
 contributor cities.
 
 ```{r, warning=FALSE, echo=FALSE}
-head(ratio_by_city[order(-ratio_by_city$sum), c("contbr_city", "sum")], n = 10)
+ratio_by_city$ratio <- ratio_by_city$sum / sum(ratio_by_city$sum)
+head(ratio_by_city[order(-ratio_by_city$sum), c("contbr_city", "sum", "ratio")], n = 10)
 ```
 
 The numbers prove what we saw in the bar chart. Los Angeles and San Francisco 
@@ -374,20 +377,53 @@ We can see that - as I expected - retirees raised the largest amount. But the
 average individual contribution of retirees was quite low - only the teachers 
 and unemployed people have lower average support.
 
-# Bivariate Analysis
+```{r warning=FALSE, echo=FALSE}
+sum_by_date <- finData %>%
+  group_by(contb_receipt_dt) %>%
+  summarize(sum = sum(contb_receipt_amt), avg = mean(contb_receipt_amt), n = n()) %>%
+  arrange(contb_receipt_dt)
+  
+head(sum_by_date)
+```
 
-> **Tip**: As before, summarize what you found in your bivariate explorations
-here. Use the questions below to guide your discussion.
+```{r warning=FALSE, echo=FALSE}
+p1 <- ggplot(sum_by_date, aes(x = contb_receipt_dt, y = avg)) + 
+  geom_line() + 
+  scale_x_date(limits = as.Date(c("01-01-16", "31-12-16"), "%d-%m-%Y"))
+p2 <- ggplot(sum_by_date, aes(x = contb_receipt_dt, y = avg)) + 
+  geom_line() + 
+  scale_x_date(limits = as.Date(c("01-11-16", "31-12-16"), "%d-%m-%Y"))
+p3 <- ggplot(sum_by_date, aes(x = contb_receipt_dt, y = sum)) + 
+  geom_line() + 
+  scale_x_date(limits = as.Date(c("01-01-16", "31-12-16"), "%d-%m-%Y"))
+p4 <- ggplot(sum_by_date, aes(x = contb_receipt_dt, y = sum)) + 
+  geom_line() + 
+  scale_x_date(limits = as.Date(c("01-11-16", "31-12-16"), "%d-%m-%Y"))
+
+grid.arrange(p1, p2, p3, p4, ncol = 2)
+
+```
+
+On the plots above we can see how average amount and sum of contributions per 
+day changed in 2016. It is striking that the average number of contribution 
+remained almost the same during the year, but after November 15 some large 
+amount support came in. In contrast, the sum of all contribution on a given day 
+was on a given level, raised in October and fell around 8th of November.
+
+# Bivariate Analysis
 
 ### Talk about some of the relationships you observed in this part of the \
 investigation. How did the feature(s) of interest vary with other features in \
 the dataset?
 
-### Did you observe any interesting relationships between the other features \
-(not the main feature(s) of interest)?
-
-### What was the strongest relationship you found?
-
+In general, the number and the sum of all contribution were connected to each 
+other, but not in all cases. The number and sum of all support what each 
+candidate received correlated strongly with each other (r = 0.94).
+However, the retirees made a large number of donation and therefore the 
+cumulative contribution was very high, the average amount per contribution 
+was very low.
+And finally, Los Angeles and San Francisco were those cities from which the 
+largest amount came. These two city has almost 20% of all contributions.
 
 # Multivariate Plots Section
 
