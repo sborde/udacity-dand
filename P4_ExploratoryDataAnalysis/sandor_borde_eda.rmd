@@ -39,15 +39,17 @@ There are meaningless or not so informative variables:
   * *memo_text*, *receipt_desc*: description of the receipt contains textual data which 
 I won't analyze. Besides that, in most cases this field is empty.
   * *memo_cd*: this field only indicates that they provided any memo text.
-  * *form_tp*, *file_num*, *tran_id*: these variables serve only administrative purposes, 
+  * *form_tp*, *file_num*, *tran_id*: these variables serve only administrative purposes,
  but don't provide any meaningful information.
+  * *contbr_zip*: this field deisgnates the contributor's zip code. It would be
+  too detailed so I exclude this variable from the analysis.
  
 I decided to remove the above variables, so I have ten variables left.
 
 ```{r echo=FALSE}
 finData = subset(finData, select = -c(cand_id, contbr_st, memo_text, 
                                        receipt_desc, memo_cd, form_tp,
-                                       file_num, tran_id))
+                                       file_num, tran_id, contbr_zip))
 ```
 
 After removing the mentioned features, I got the following ten features.
@@ -339,19 +341,24 @@ other. The value of the correlation coefficient strengthens my theory.
 
 ```{r echo=FALSE, warning=FALSE}
 # Create sum plot by city
-ggplot(finData, aes(contbr_city, contb_receipt_amt)) +
-  geom_bar(stat = "sum") +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
-  scale_x_discrete(breaks = seq(0, 2517, 10))
+ggplot(ratio_by_city[order(-ratio_by_city$sum)[seq(0, 20)], ], 
+       aes(x = contbr_city, y = sum)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
 ```
 
-From the plot above I can see, that there are four cities which have much more 
+Because I have 2517 cities in my dataset, I couldn't plot their data because 
+the bars were too narrow. I handled this issue by selecting only the top 20
+cities according to sum of the contribution made from there.
+
+From that plot I can see, that there are two cities which have much more 
 support than the others. After displaying the exact values we can see these top
 contributor cities.
 
 ```{r, warning=FALSE, echo=FALSE}
 ratio_by_city$ratio <- ratio_by_city$sum / sum(ratio_by_city$sum)
-head(ratio_by_city[order(-ratio_by_city$sum), c("contbr_city", "sum", "ratio")], n = 10)
+head(ratio_by_city[order(-ratio_by_city$sum), 
+                   c("contbr_city", "sum", "ratio")], n = 10)
 ```
 
 The numbers prove what we saw in the bar chart. Los Angeles and San Francisco 
@@ -377,13 +384,37 @@ We can see that - as I expected - retirees raised the largest amount. But the
 average individual contribution of retirees was quite low - only the teachers 
 and unemployed people have lower average support.
 
+```{r echo=FALSE, error=FALSE, message=FALSE, warning=FALSE}
+top4City <- subset(finData, finData$contbr_city %in% 
+          c("LOS ANGELES", "SAN FRANCISCO") &
+          finData$contbr_occupation %in% ratio_by_occupation$contbr_occupation)
+
+ggplot(data = top4City, aes(x = contbr_city,
+                            fill = contbr_occupation)) + 
+  geom_bar(stat = "count")
+```
+
+```{r, echo=FALSE, warning=FALSE}
+group_by_city_and_occ <- top4City %>%
+  group_by(contbr_city, contbr_occupation) %>%
+  summarise(n = n())
+
+spread(group_by_city_and_occ, contbr_city, n)
+```
+
+Just from curiosity, I plotted the ratio of the top 11 occupations for the two
+most contributing cities.
+
+I see on the stacked bar chart that the ratio of each occupation was the same 
+in both of the examined city. One interesting thing is that software 
+engineers had a very low ratio in Los Angeles, but in SF they had a large portion.
+
 ```{r warning=FALSE, echo=FALSE}
 sum_by_date <- finData %>%
   group_by(contb_receipt_dt) %>%
   summarize(sum = sum(contb_receipt_amt), avg = mean(contb_receipt_amt), n = n()) %>%
   arrange(contb_receipt_dt)
-  
-head(sum_by_date)
+
 ```
 
 ```{r warning=FALSE, echo=FALSE}
@@ -417,13 +448,26 @@ investigation. How did the feature(s) of interest vary with other features in \
 the dataset?
 
 In general, the number and the sum of all contribution were connected to each 
-other, but not in all cases. The number and sum of all support what each 
-candidate received correlated strongly with each other (r = 0.94).
-However, the retirees made a large number of donation and therefore the 
-cumulative contribution was very high, the average amount per contribution 
-was very low.
-And finally, Los Angeles and San Francisco were those cities from which the 
-largest amount came. These two city has almost 20% of all contributions.
+other, but not in all cases. 
+
+ * The number and sum of all support what each candidate received correlated 
+ strongly with each other (r = 0.94).
+ * However, the retirees made a large number of donation and therefore the 
+ cumulative contribution was very high, the average amount per contribution 
+ was very low.
+ * And finally, Los Angeles and San Francisco were those cities from which the 
+ largest amount came. These two city has almost 20% of all contributions. The 
+ next two cities were San Diego and Palo Alto but with a much less amount.
+
+
+### Did you observe any interesting relationships between the other features \
+(not the main feature(s) of interest)?
+
+I examined the relationship between occupation and city. The number of occupation
+ and the number of cities both follows a long-tail distribution (so there would
+ be too many different values) I selected only the top 2 cities and the top 11 
+ occupations. I saw that almost each occupation has the same ratio in the mentioned
+ two city except software engineers who were underrepresented in LA.
 
 # Multivariate Plots Section
 
@@ -434,9 +478,121 @@ create here are justified by the plots you explored in the previous section. If
 you plan on creating any mathematical models, this is the section where you
 will do that.
 
-```{r echo=FALSE, Multivariate_Plots}
+```{r echo=FALSE, warning=FALSE, Multivariate_Plots}
+top11occupation <- ratio_by_occupation$contbr_occupation
+top2CityName <- c('SAN FRANCISCO', 'LOS ANGELES')
+```
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(subset(finData, finData$contbr_occupation %in% top11occupation &
+                finData$contbr_city %in% top2CityName), 
+       aes(x = contb_receipt_dt, y = contb_receipt_amt)) +
+  geom_smooth(stat = "summary", fun.y = "sum", method = "lm") + 
+  scale_x_date(limits = as.Date(c("01-01-16", "31-12-16"), "%d-%m-%Y")) +
+  facet_wrap(~ contbr_city)
 
 ```
+
+First, I created two plots about the change of the sum of contribution over time in Los Angeles and San Francisco. On this large-scale figure, I can see that San Francisco contributed more in the Summer of 2016 than Los Angeles.
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(subset(finData, finData$contbr_occupation %in% top11occupation &
+                finData$contbr_city %in% top2CityName), 
+       aes(x = contb_receipt_dt, y = contb_receipt_amt)) +
+  geom_smooth(stat = "summary", fun.y = "sum", method = "lm") + 
+  scale_x_date(limits = as.Date(c("01-11-16", "31-12-16"), "%d-%m-%Y")) +
+  facet_wrap(~ contbr_city)
+
+```
+
+If we zoom into the end of the year, the finding becomes stronger: people in San Francisco contributed almost two times more money than people from Los Angeles. 
+However, the trend is the same: high amount before the announcement of the result, then almost nothing. Finally, a small peak around November 20.
+
+```{r warning=FALSE, echo=FALSE}
+# Subset the data which belongs to the two finalist
+finalists <- c("Clinton, Hillary Rodham", "Trump, Donald J.")
+support_for_finalist <- subset(finData, cand_nm %in% finalists)
+```
+
+```{r warning=FALSE, echo=FALSE}
+ggplot(support_for_finalist, 
+       aes(x = contb_receipt_dt, y = contb_receipt_amt)) +
+  geom_smooth(stat = "summary", fun.y = "sum", method = "lm") + 
+  scale_x_date(limits = as.Date(c("01-01-16", "31-12-16"), "%d-%m-%Y")) +
+  facet_wrap(~ cand_nm)
+```
+
+After plotting the amount of support in the year of election (2016) for the two 
+finalist (Hillary Clinton and Donald Trump) I realized some striking difference: 
+
+ * Hillary Clinton received higher amount of support almost always over the year
+ * Support of Hillary Clinton has an increasing trend, DT only increased in the
+ summer, but the trend is constant
+ 
+```{r warning=FALSE, echo=FALSE}
+ggplot(support_for_finalist, 
+       aes(x = contb_receipt_dt, y = contb_receipt_amt, color = cand_nm)) +
+  geom_smooth(stat = "summary", fun.y = "sum", method = "lm") + 
+  scale_x_date(limits = as.Date(c("01-06-16", "31-08-16"), "%d-%m-%Y"))
+```
+
+On the annual plot I could see a relatively large fall in the support of HC which 
+happened in July, 2016. Interestingly, this was that time when DT has a small 
+peak in his support. Drawing the two plots on each other, I saw that this coincided.
+
+```{r echo=FALSE, warning=FALSE}
+ggplot(subset(support_for_finalist, 
+              support_for_finalist$contbr_occupation %in% top11occupation),
+                             aes(x = cand_nm, 
+                                 y = contb_receipt_amt, 
+                                 fill = contbr_occupation)) +
+  geom_bar(stat = "summary", fun.y = "sum")
+```
+
+```{r warning=FALSE, echo=FALSE}
+sum_by_finalist <- subset(support_for_finalist, 
+                          support_for_finalist$contbr_occupation %in% 
+                            top11occupation) %>%
+  group_by(cand_nm, contbr_occupation) %>%
+  summarise(sum = sum(contb_receipt_amt)) %>%
+  spread(cand_nm, sum)
+
+print(sum_by_finalist)
+```
+
+When I plotted the amount given to each candidate grouped by occupation, a new 
+interesting fact appeared: Donald Trump was supported with a noticeable amount 
+only by retirees and people with unknown occupation. The other 9 occupation 
+category gave him a lot less support. In the case of the other candidate, besides
+the retirees, attorneys gave a huge support to her (almost half of the sum given
+by retirees).
+
+```{r echo=FALSE, warning=FALSE}
+hc_by_city <- subset(finData, finData$cand_nm == finalists[1]) %>%
+  group_by(contbr_city) %>%
+  summarise(sum = sum(contb_receipt_amt)) %>%
+  arrange(desc(sum))
+dt_by_city <- subset(finData, finData$cand_nm == finalists[2]) %>%
+  group_by(contbr_city) %>%
+  summarise(sum = sum(contb_receipt_amt)) %>%
+  arrange(desc(sum))
+```
+
+```{r echo=FALSE, warning=FALSE}
+p1 <- ggplot(hc_by_city[seq(0, 20),], aes(contbr_city, sum)) +
+  geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+p2 <- ggplot(dt_by_city[seq(0, 20),], aes(contbr_city, sum)) +
+  geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+grid.arrange(p1, p2, ncol = 2)
+```
+
+I collected the contributed amount grouped by cities for the two finalists, then
+I plotted the top 20 from these values. Hillary Clinton received the most contribution
+from Los Angeles and San Francisco. However, Donald Trump received most of his 
+support from LA too, but the third and second cities were San Diego and Newport Beach. 
+San Francisco was only on the 5th place after Bakersfield. Another thing what I 
+noticed is that the contribution of Donald Trump is more evenly distributed among 
+the top 20 cities than Hillary's.
 
 # Multivariate Analysis
 
@@ -444,7 +600,11 @@ will do that.
 investigation. Were there features that strengthened each other in terms of \
 looking at your feature(s) of interest?
 
+
+
 ### Were there any interesting or surprising interactions between features?
+
+
 
 ### OPTIONAL: Did you create any models with your dataset? Discuss the \
 strengths and limitations of your model.
