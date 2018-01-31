@@ -21,6 +21,9 @@ I changed the wording because it was misleading.
 
 On the last slide, I will show a map of California, where I will display with circles of different sizes the amount of support received from each city. With a radio button, we can choose between the two candidates. Switching between them, we can realize that Trump's support wasn't so concentrated in large cities but spread across California.
 
+### Solution for Feedback 3:
+I grouped the occupations which can be considered together.
+
 ## Feedback
 ### Feedback 1:
 
@@ -28,6 +31,9 @@ On the last slide, I will show a map of California, where I will display with ci
 
 ### Feedback 2:
 "I couldn't understand the fourth chart. I can't see why the contributions are less frequent but have large amounts. I mean, I can't reach this conclusion just looking at the chart. Maybe I'm missing something. Could you explain it to me?"
+
+### Feedback 3:
+"I would make a small adjustment in the fourth chart. Put color on the dots because it's easier for the reader to understand. For example, you can create two groups: The first group has Self-employed, Business owner, realtor, CEO, executive, manager, and president. The second group has the rest of the occupations. So, in the graph, we can see that one group is different from another. because of the color. The way it is today, I need to hover over the dots to discover the occupation."
 
 ## Link to Tableau story
 https://public.tableau.com/shared/28PB6QTYM?:display_count=yes
