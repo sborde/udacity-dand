@@ -36,4 +36,7 @@ I grouped the occupations which can be considered together.
 "I would make a small adjustment in the fourth chart. Put color on the dots because it's easier for the reader to understand. For example, you can create two groups: The first group has Self-employed, Business owner, realtor, CEO, executive, manager, and president. The second group has the rest of the occupations. So, in the graph, we can see that one group is different from another. because of the color. The way it is today, I need to hover over the dots to discover the occupation."
 
 ## Link to Tableau story
+### Initial version
 https://public.tableau.com/shared/28PB6QTYM?:display_count=yes
+### Final version
+https://public.tableau.com/views/ca_pres_election_support_0/Supportstory?:embed=y&:display_count=yes
